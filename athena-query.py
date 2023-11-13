@@ -12,8 +12,6 @@ session = boto3.Session (
 )
 athena_client = boto3.client('athena', region_name = 'eu-west-1')
 
-
-
 def execute_athena_query(query_string, database, catalog, output_location):
     response = athena_client.start_query_execution(
         QueryString=query_string,
@@ -40,4 +38,17 @@ def get_query_results(query_execution_id, maxresults):
     )
    # Process and print/ query results
    for row in response['ResultSet']['Rows']:
-    print([field['VarCharValue'] for field in row['Data'] ] )   
+    print([field['VarCharValue'] for field in row['Data'] ] ) 
+
+    
+    if __name__ == "__main__":
+        while get_query_status(query_execution_id) == 'RUNNING':
+            print("Query is still running ....")
+            time.sleep(5)
+        
+        if get_query_status(query_execution_id) == 'SUCCEDEED':
+            print("Query Succeded!!!!!")
+            get_query_results(query_execution_id)
+        else:
+            print("Query failed or was cancelled")
+
