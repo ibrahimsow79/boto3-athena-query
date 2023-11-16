@@ -6,6 +6,7 @@ This program is build to run the athena query that builds the aws backup report
 
 import boto3
 import time
+import re
 
 # Create a Boto3 client for Athena
 session = boto3.Session (
@@ -13,19 +14,22 @@ session = boto3.Session (
 )
 
 athena_client = session.client('athena')
-print(athena_client)
-
 
 region = 'eu-west-1',
 catalog = 'AwsDataCatalog'
 database = 'awsbackup-reporting'
-query_string = 'select * from "AwsDataCatalog"."awsbackup-reporting"."awsbackup-resource-reportingcrossaccount"'
-output_location = 's3://s3-awsbackup-reports-claranet/queryresults/'
-maxresults = 10000000000
+query_string = 'select "account id", "region", "job status", "status message", "resource arn", "resource type", "creation date" from "AwsDataCatalog"."awsbackup-reporting"."awsbackup-backupjobs-reportingcrossaccount"'
+output_location = 's3://s3-awsbackup-reports-claranet/queryresults/report-isow-results'
+maxresults = 100
 
 
 
 def execute_athena_query(query_string, database, catalog, output_location):
+    """"
+    This function will execute the athena query
+    Inputs are the : QueryString, QueryExecutionContext (Database, Catalog and OutputLocation)
+    Ouptut is QueryExectionId
+    """
     response = athena_client.start_query_execution(
         QueryString=query_string,
         QueryExecutionContext={
@@ -40,9 +44,9 @@ def execute_athena_query(query_string, database, catalog, output_location):
 
 def get_query_status(query_execution_id):
     response = athena_client.get_query_execution(
-        QueryExecutionId=query_execution_id)
-    print(f"{response['QueryExecution']['Status']['State']}")
-    
+        QueryExecutionId=query_execution_id
+    )
+   
     return response['QueryExecution']['Status']['State'] 
 
 def get_query_results(query_execution_id, maxresults):
@@ -51,20 +55,23 @@ def get_query_results(query_execution_id, maxresults):
         MaxResults=maxresults
     )
    # Process and print/ query results
-    for row in response['ResultSet']['Rows']:
-        print([field['VarCharValue'] for field in row['Data'] ] ) 
+   #  for row in response['ResultSet']['Rows']:
+   #     print([field['VarCharValue'] for field in row['Data'] ] ) 
 
     
 if __name__ == '__main__':
     query_execution_id = execute_athena_query(query_string, database, catalog, output_location)
     print(f"query_execution_id is equal to {query_execution_id}")
 
-    while get_query_status(query_execution_id) == 'RUNNING':
-        print("Query is still running ....")
-        time.sleep(5)
-        
+    while get_query_status(query_execution_id) in ['QUEUED', 'RUNNING']:
+        print("Query is being queued or running  ....")
+        time.sleep(2)
+   
     if get_query_status(query_execution_id) == 'SUCCEEDED':
         print("Query Succeeded!!!!!")
-        get_query_results(query_execution_id)
+       
+        get_query_results(query_execution_id, maxresults)
+        filename = f"s3://s3-awsbackup-reports-claranet/queryresults/report-isow-results/{query_execution_id}.csv/"
+        print(f"the filename containing the results is: {filename}")
     else:
         print("Query failed or was cancelled")
