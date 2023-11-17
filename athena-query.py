@@ -5,8 +5,15 @@ This program is build to run the athena query that builds the aws backup report
 """
 
 import boto3
+import botocore
 import time
 import re
+import logging
+
+LOG_FORMAT = "%(levelname)-8s %(asctime)-15s %(message)s"
+logging.basicConfig(format=LOG_FORMAT)
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 # Create a Boto3 client for Athena
 session = boto3.Session (
@@ -18,7 +25,7 @@ athena_client = session.client('athena')
 region = 'eu-west-1',
 catalog = 'AwsDataCatalog'
 database = 'awsbackup-reporting'
-query_string = 'select "account id", "region", "job status", "status message", "resource arn", "resource type", "creation date" from "AwsDataCatalog"."awsbackup-reporting"."awsbackup-backupjobs-reportingcrossaccount" where (concat_ws('-',"partition_1", "partition_2", "partition_3") = to_iso8601(current_date)) and (("status message" is not null and "status message" <> '') or  "job status" = "FAILED")'
+query_string = 'select "account id", "region", "job status", "status message", "resource arn", "resource type" from "AwsDataCatalog"."awsbackup-reporting"."awsbackup-backupjobs-reportingcrossaccount" where length("status message") > 1' 
 output_location = 's3://s3-awsbackup-reports-claranet/queryresults/report-isow-results'
 maxresults = 100
 
@@ -30,16 +37,19 @@ def execute_athena_query(query_string, database, catalog, output_location):
     Inputs are the : QueryString, QueryExecutionContext (Database, Catalog and OutputLocation)
     Ouptut is QueryExectionId
     """
-    response = athena_client.start_query_execution(
-        QueryString=query_string,
-        QueryExecutionContext={
-            'Database': database,
-            'Catalog': catalog 
-        }, 
-        ResultConfiguration={
-            'OutputLocation': output_location  
-        }
-    )
+    try:
+        response = athena_client.start_query_execution(
+            QueryString=query_string,
+            QueryExecutionContext={
+                'Database': database,
+                'Catalog': catalog 
+            }, 
+            ResultConfiguration={
+                'OutputLocation': output_location  
+            }
+        )
+    except botocore.exceptions.ClientError as e:
+        logger.error(e)
     return response['QueryExecutionId'] 
 
 def get_query_status(query_execution_id):
@@ -55,8 +65,8 @@ def get_query_results(query_execution_id, maxresults):
         MaxResults=maxresults
     )
    # Process and print/ query results
-   #  for row in response['ResultSet']['Rows']:
-   #     print([field['VarCharValue'] for field in row['Data'] ] ) 
+    for row in response['ResultSet']['Rows']:
+        print([field['VarCharValue'] for field in row['Data'] ] ) 
 
     
 if __name__ == '__main__':
