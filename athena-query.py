@@ -18,7 +18,7 @@ athena_client = session.client('athena')
 region = 'eu-west-1',
 catalog = 'AwsDataCatalog'
 database = 'awsbackup-reporting'
-query_string = 'select "account id", "region", "job status", "status message", "resource arn", "resource type", "creation date" from "AwsDataCatalog"."awsbackup-reporting"."awsbackup-backupjobs-reportingcrossaccount"'
+query_string = 'select "account id", "region", "job status", "status message", "resource arn", "resource type", "creation date" from "AwsDataCatalog"."awsbackup-reporting"."awsbackup-backupjobs-reportingcrossaccount" where (concat_ws('-',"partition_1", "partition_2", "partition_3") = to_iso8601(current_date)) and (("status message" is not null and "status message" <> '') or  "job status" = "FAILED")'
 output_location = 's3://s3-awsbackup-reports-claranet/queryresults/report-isow-results'
 maxresults = 100
 
