@@ -27,7 +27,7 @@ catalog = 'AwsDataCatalog'
 database = 'awsbackup-reporting'
 query_string = 'select * from report' 
 output_location = 's3://s3-awsbackup-reports-claranet/queryresults/report-isow-results'
-maxresults = 10
+maxresults = 100
 
 
 
@@ -53,6 +53,12 @@ def execute_athena_query(query_string, database, catalog, output_location):
     return response['QueryExecutionId'] 
 
 def get_query_status(query_execution_id):
+    """
+    This function will retrieve the status of the query. 
+    There are five possible values : 
+    'QUEUED'|'RUNNING'|'SUCCEEDED'|'FAILED'|'CANCELLED'
+    """
+
     response = athena_client.get_query_execution(
         QueryExecutionId=query_execution_id
     )
@@ -60,6 +66,9 @@ def get_query_status(query_execution_id):
     return response['QueryExecution']['Status']['State'] 
 
 def get_query_results(query_execution_id, maxresults):
+    """
+    This function to get the results of the query.
+    """
     response = athena_client.get_query_results(
         QueryExecutionId=query_execution_id,
         MaxResults=maxresults
