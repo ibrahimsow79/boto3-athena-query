@@ -29,33 +29,6 @@ terraform {
 
 data "aws_caller_identity" "current" {}
 
-data "aws_kms_key" "aws-backup-key" {
-  key_id = "alias/aws/backup"
-}
-
-data "aws_kms_key" "aws-sns-key" {
-  key_id = "alias/aws/sns"
-}
-
-/*
-module "sns_topic" {
-  source = "git@ssh.dev.azure.com:v3/lpl-sources/Terraform/mod-aws-sns-topic?ref=1.1.0"
-
-  auto_tag_name = true
-  //    display_name    = "aws-backup-minisites-nonprod"
-  //  kms_key         = data.aws_kms_key.aws-sns-key.key_id
-  name         = var.name
-  project_name = var.project_name
-  region       = var.region
-  stack_name   = "SUPPORT"
-  tags = {
-    Environment = var.env
-    Project     = "topic-leader-backup"
-    Role        = "backup"
-  }
-}
-*/
-
 //    Allow lambda to use sts assume role
 # Allow lambda to use sts assume role
 
@@ -79,8 +52,6 @@ resource "aws_iam_role" "lambda_role_athena_query" {
 EOF
 }
 
-
-
 # Define the policy to create a logstream in cloudwatch
 resource "aws_iam_policy" "lambda_policy_athena_query" {
   name   = "lambda_policy_athena_query"
@@ -100,6 +71,21 @@ resource "aws_iam_policy" "lambda_policy_athena_query" {
             ],
             "Effect": "Allow",
             "Sid": "logsclaranet"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "athena:StartQueryExecution",
+                "athena:GetQueryExecution",
+                "athena:GetQueryResults",
+                "athena:StopQueryExecution",
+                "athena:ListDatabases",
+                "athena:ListTableMetadata"
+            ],
+            "Resource": [
+                "arn:aws:athena:region:${data.aws_caller_identity.current.account_id}:workgroup/primary",
+                "arn:aws:athena:region:${data.aws_caller_identity.current.account_id}:workgroup/primary/*"
+            ]
         }
     ]
 }
