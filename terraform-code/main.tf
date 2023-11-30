@@ -61,6 +61,22 @@ resource "aws_iam_policy" "lambda_policy_athena_query" {
     "Version": "2012-10-17",
     "Statement": [
         {
+            "Effect": "Allow",
+            "Action": [
+                "athena:StartQueryExecution",
+                "athena:GetQueryExecution",
+                "athena:GetQueryResults",
+                "athena:StopQueryExecution",
+                "athena:ListDatabases",
+                "athena:ListTableMetadata"
+            ],
+            "Resource": [
+                "arn:aws:athena:${var.region}:${data.aws_caller_identity.current.account_id}:workgroup/primary",
+                "arn:aws:athena:${var.region}:${data.aws_caller_identity.current.account_id}:workgroup/primary/*"
+            ]
+        },
+
+        {
             "Action": [
                 "logs:CreateLogGroup",
                 "logs:CreateLogStream",
@@ -75,18 +91,31 @@ resource "aws_iam_policy" "lambda_policy_athena_query" {
         {
             "Effect": "Allow",
             "Action": [
-                "athena:StartQueryExecution",
-                "athena:GetQueryExecution",
-                "athena:GetQueryResults",
-                "athena:StopQueryExecution",
-                "athena:ListDatabases",
-                "athena:ListTableMetadata"
+                
+                "glue:GetDatabase",
+                "glue:GetDatabases",                          
+                "glue:GetTable",
+                "glue:GetTables",
+                "glue:GetPartition",
+                "glue:GetPartitions",
+                "glue:BatchGetPartition"
             ],
             "Resource": [
-                "arn:aws:athena:region:${data.aws_caller_identity.current.account_id}:workgroup/primary",
-                "arn:aws:athena:region:${data.aws_caller_identity.current.account_id}:workgroup/primary/*"
+                "*"
+            ]
+        },
+        {
+            "Sid": "AllowPublicRead",
+            "Effect": "Allow",
+            "Action": [
+                "s3:*"
+            ],
+            "Resource": [
+                "arn:aws:s3:::s3-awsbackup-reports-claranet",
+                "arn:aws:s3:::s3-awsbackup-reports-claranet/*"
             ]
         }
+        
     ]
 }
 EOF
