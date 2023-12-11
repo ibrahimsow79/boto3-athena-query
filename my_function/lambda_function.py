@@ -9,6 +9,7 @@ import botocore
 import time
 import re
 import logging
+import pandas
 
 LOG_FORMAT = "%(levelname)-8s %(asctime)-15s %(message)s"
 logging.basicConfig(format=LOG_FORMAT)
