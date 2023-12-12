@@ -127,6 +127,7 @@ resource "aws_iam_role_policy_attachment" "role_lambda_athena_query" {
 }
 
 resource "aws_lambda_function" "athena_query" {
+  description = "This lambda runs the query that creates a daily report for awsbackup"
   filename      = "../my_function/my_deployment_package.zip"
   function_name = "athena_query"
   role          = aws_iam_role.lambda_role_athena_query.arn

@@ -8,7 +8,7 @@ import boto3
 import botocore
 import time
 import io
-import re
+#  import re   
 import logging
 import pandas as pd
 
@@ -100,7 +100,7 @@ if __name__ == '__main__':
 
     while get_query_status(query_execution_id) in ['QUEUED', 'RUNNING']:
         print("Query is being queued or running  ....")
-        time.sleep(2)
+    time.sleep(2)
    
     if get_query_status(query_execution_id) == 'SUCCEEDED':
         print("Query Succeeded!!!!!")

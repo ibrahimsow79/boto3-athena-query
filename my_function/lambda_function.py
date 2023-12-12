@@ -7,9 +7,10 @@ This program is build to run the athena query that builds the aws backup report
 import boto3
 import botocore
 import time
-import re
+import io
+#  import re
 import logging
-import pandas
+import pandas as pd
 
 LOG_FORMAT = "%(levelname)-8s %(asctime)-15s %(message)s"
 logging.basicConfig(format=LOG_FORMAT)
@@ -28,6 +29,8 @@ catalog = 'AwsDataCatalog'
 database = 'awsbackup-reporting'
 query_string = 'select * from report' 
 output_location = 's3://s3-awsbackup-reports-claranet/queryresults/report-isow-results'
+bucket_name = "s3-awsbackup-reports-claranet"
+path = "queryresults/report-isow-results"
 maxresults = 300
 
 def lambda_handler(handler, context):
@@ -43,8 +46,12 @@ def lambda_handler(handler, context):
         print("Query Succeeded!!!!!")
        
         get_query_results(query_execution_id, maxresults)
-        filename = f"s3://s3-awsbackup-reports-claranet/queryresults/report-isow-results/{query_execution_id}.csv/"
+    #  filename = f"s3://s3-awsbackup-reports-claranet/queryresults/report-isow-results/{query_execution_id}.csv/"
+        filename = f"{query_execution_id}.csv"
         print(f"the filename containing the results is: {filename}")
+    
+        result = s3_csv_to_excel(session, bucket_name, path, filename)
+        print(result)
     else:
         print("Query failed or was cancelled")
 
@@ -94,3 +101,14 @@ def get_query_results(query_execution_id, maxresults):
    # Process and print/ query results
     for row in response['ResultSet']['Rows']:
         print([field['VarCharValue'] for field in row['Data'] ] ) 
+
+def s3_csv_to_excel(session, bucket_name, path, filename):
+    s3client = session.client('s3')
+    obj = s3client.get_object(Bucket = bucket_name, Key = path + '/' + filename)
+    df = pd.read_csv(io.BytesIO(obj['Body'].read()))
+    df.to_excel('/tmp/output_file.xlsx', index=False,sheet_name='Backup Resource Report')
+    object_name = '/tmp/output_file.xlsx'
+    
+    s3client.upload_file('/tmp/output_file.xlsx', bucket_name, 'output_file.xlsx')
+
+    return df
